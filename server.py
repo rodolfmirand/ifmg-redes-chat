@@ -25,8 +25,9 @@ def handle_client(conn, addr):
     except:
         conn.close()
         return
-    
+
     clients[username] = (conn, addr, True)
+    print(f"[+] {username} conectou de {addr[0]}:{addr[1]}")
     broadcast(f"{username} entrou no chat.")
     update_users()
 
@@ -35,15 +36,20 @@ def handle_client(conn, addr):
             msg = conn.recv(1024).decode('utf-8')
             if not msg:
                 break
+
             if msg.startswith('@'):
                 target, _, content = msg.partition(' ')
+                print(f"[PRIVADO] {username} -> {target[1:]}: {content}")
                 private_message(target[1:], f"[PRIVADO] {username}: {content}")
             else:
+                print(f"[MENSAGEM] {username}: {msg}")
                 broadcast(f"{username}: {msg}", sender=username)
+
         except:
             break
 
     clients[username] = (conn, addr, False)
+    print(f"[-] {username} desconectou.")
     broadcast(f"{username} saiu do chat.")
     update_users()
     conn.close()

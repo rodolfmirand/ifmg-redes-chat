@@ -1,7 +1,6 @@
 import tkinter as tk
 from client import Client
 
-# Global para guardar nome de usuário
 username_global = ""
 
 def connect():
@@ -14,10 +13,9 @@ def connect():
         return
 
     username_global = username
-    chat_frame.pack(fill=tk.BOTH, expand=True)
     connect_frame.pack_forget()
-
-    username_label.config(text=username)
+    chat_frame.pack(fill=tk.BOTH, expand=True)
+    username_label.config(text=f"Você: {username}")
 
     global client
     client = Client(ip, port, username, gui)
@@ -35,7 +33,6 @@ def update_user_list(user_data):
         user_listbox.insert(tk.END, f"{name} ({status})")
 
 def display_message(msg):
-    # Substituir nome do usuário pelo "Você" apenas se for mensagem pública
     if msg.startswith(f"{username_global}:"):
         msg = msg.replace(f"{username_global}:", "Você:", 1)
     elif msg.startswith(f"[PRIVADO] {username_global}:"):
@@ -54,6 +51,7 @@ gui = GuiStub()
 
 root = tk.Tk()
 root.title("Cliente - Simulador de Chat")
+root.geometry("800x500")
 
 # Tela de conexão
 connect_frame = tk.Frame(root)
@@ -80,24 +78,36 @@ status_label.pack()
 # Tela de chat
 chat_frame = tk.Frame(root)
 
-# Label de identificação
-username_label = tk.Label(chat_frame, text="", font=("Arial", 10, "bold"), fg="blue")
-username_label.pack(pady=5)
+top_frame = tk.Frame(chat_frame)
+top_frame.pack(fill=tk.BOTH, expand=True)
 
-chat_text = tk.Text(chat_frame, state=tk.DISABLED, width=50, height=20)
-chat_text.pack(side=tk.LEFT, padx=5, pady=5)
+# Área de mensagens (70% da largura)
+messages_frame = tk.Frame(top_frame, width=550)
+messages_frame.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
 
-right_frame = tk.Frame(chat_frame)
-right_frame.pack(side=tk.LEFT, fill=tk.Y)
+username_label = tk.Label(messages_frame, text="", font=("Arial", 10, "bold"), fg="blue", anchor="w")
+username_label.pack(fill=tk.X, padx=5, pady=5)
 
-message_entry = tk.Entry(right_frame, width=40)
-message_entry.pack(padx=5, pady=5)
+chat_text = tk.Text(messages_frame, state=tk.DISABLED, wrap=tk.WORD)
+chat_text.pack(fill=tk.BOTH, expand=True, padx=5, pady=5)
 
-send_button = tk.Button(right_frame, text="Enviar", command=send_message)
-send_button.pack(padx=5)
+# Lista de usuários (30% da largura)
+users_frame = tk.Frame(top_frame, width=200)
+users_frame.pack(side=tk.LEFT, fill=tk.Y)
+users_frame.pack_propagate(False)  # Impede que o frame se ajuste ao conteúdo
 
-tk.Label(right_frame, text="Usuários Online/Offline").pack(pady=5)
-user_listbox = tk.Listbox(right_frame)
-user_listbox.pack(padx=5, pady=5, fill=tk.BOTH, expand=True)
+tk.Label(users_frame, text="Usuários on/off", font=("Arial", 10, "bold")).pack(pady=5)
+user_listbox = tk.Listbox(users_frame)
+user_listbox.pack(fill=tk.BOTH, expand=True, padx=5, pady=5)
+
+# Campo de digitação e botão de envio
+bottom_frame = tk.Frame(chat_frame)
+bottom_frame.pack(fill=tk.X, padx=5, pady=5)
+
+message_entry = tk.Entry(bottom_frame)
+message_entry.pack(side=tk.LEFT, fill=tk.X, expand=True, padx=(0, 5))
+
+send_button = tk.Button(bottom_frame, text="Enviar", command=send_message, width=10)
+send_button.pack(side=tk.LEFT)
 
 root.mainloop()
