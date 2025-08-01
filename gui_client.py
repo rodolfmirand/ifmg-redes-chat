@@ -1,7 +1,9 @@
 import tkinter as tk
 from client import Client
+import re
 
 username_global = ""
+message_line_positions = {}  # {ID: posição inicial no Text}
 
 def connect():
     global username_global
@@ -27,17 +29,57 @@ def send_message():
         message_entry.delete(0, tk.END)
 
 def update_user_list(user_data):
-    user_listbox.delete(0, tk.END)
+    user_text.config(state=tk.NORMAL)
+    user_text.delete(1.0, tk.END)
     for user in user_data:
         name, status = user.split(':')
-        user_listbox.insert(tk.END, f"{name} ({status})")
+        color = 'green' if status == 'on' else 'red'
+        user_text.insert(tk.END, f"{name} ({status})\n", color)
+    user_text.config(state=tk.DISABLED)
+
 
 def display_message(msg):
-    if msg.startswith(f"{username_global}:"):
-        msg = msg.replace(f"{username_global}:", "Você:", 1)
-    elif msg.startswith(f"[PRIVADO] {username_global}:"):
-        msg = msg.replace(f"[PRIVADO] {username_global}:", "[PRIVADO] Você:", 1)
+    global message_line_positions
 
+    # Verifica se tem ID no formato [número]
+    match = re.match(r'\[(\d+)\] (.+)', msg)
+    if match:
+        msg_id = int(match.group(1))
+        content = match.group(2)
+
+        # Substituições para mensagens públicas
+        edit_suffix = " (editado)"
+        if content.startswith(f"{username_global}{edit_suffix}:"):
+            content = content.replace(f"{username_global}{edit_suffix}:", f"Você{edit_suffix}:", 1)
+        elif content.startswith(f"{username_global}:"):
+            content = content.replace(f"{username_global}:", "Você:", 1)
+
+        # Substituições para mensagens privadas
+        elif content.startswith(f"[PRIVADO] {username_global}{edit_suffix}:"):
+            content = content.replace(f"[PRIVADO] {username_global}{edit_suffix}:", f"[PRIVADO] Você{edit_suffix}:", 1)
+        elif content.startswith(f"[PRIVADO] {username_global}:"):
+            content = content.replace(f"[PRIVADO] {username_global}:", "[PRIVADO] Você:", 1)
+
+        formatted = f"[{msg_id}] {content}"
+
+        chat_text.config(state=tk.NORMAL)
+
+        if msg_id in message_line_positions:
+            # Substituir linha existente
+            line_index = message_line_positions[msg_id]
+            chat_text.delete(f"{line_index}.0", f"{int(line_index)+1}.0")
+            chat_text.insert(f"{line_index}.0", formatted + "\n")
+        else:
+            # Inserir nova linha e registrar posição
+            line_index = int(chat_text.index("end-1c").split('.')[0])
+            message_line_positions[msg_id] = line_index
+            chat_text.insert(tk.END, formatted + "\n")
+
+        chat_text.config(state=tk.DISABLED)
+        chat_text.see(tk.END)
+        return
+
+    # Mensagens sem ID (como "João entrou no chat")
     chat_text.config(state=tk.NORMAL)
     chat_text.insert(tk.END, msg + "\n")
     chat_text.config(state=tk.DISABLED)
@@ -97,17 +139,29 @@ users_frame.pack(side=tk.LEFT, fill=tk.Y)
 users_frame.pack_propagate(False)  # Impede que o frame se ajuste ao conteúdo
 
 tk.Label(users_frame, text="Usuários on/off", font=("Arial", 10, "bold")).pack(pady=5)
-user_listbox = tk.Listbox(users_frame)
-user_listbox.pack(fill=tk.BOTH, expand=True, padx=5, pady=5)
+user_text = tk.Text(users_frame, height=10, state=tk.DISABLED)
+user_text.pack(fill=tk.BOTH, expand=True, padx=5, pady=5)
+
+user_text.tag_configure('green', foreground='green')
+user_text.tag_configure('red', foreground='red')
 
 # Campo de digitação e botão de envio
+# Campo de digitação e botão de envio
 bottom_frame = tk.Frame(chat_frame)
-bottom_frame.pack(fill=tk.X, padx=5, pady=5)
+bottom_frame.pack(fill=tk.X, padx=5, pady=(0, 5))
 
-message_entry = tk.Entry(bottom_frame)
+# Instruções de edição/remoção
+info_label = tk.Label(bottom_frame, text="Use /editar [ID] [nova mensagem] ou /apagar [ID]", font=("Arial", 8), fg="gray")
+info_label.pack(anchor='w', padx=(0, 5))
+
+entry_frame = tk.Frame(bottom_frame)
+entry_frame.pack(fill=tk.X)
+
+message_entry = tk.Entry(entry_frame)
 message_entry.pack(side=tk.LEFT, fill=tk.X, expand=True, padx=(0, 5))
 
-send_button = tk.Button(bottom_frame, text="Enviar", command=send_message, width=10)
+send_button = tk.Button(entry_frame, text="Enviar", command=send_message, width=10)
 send_button.pack(side=tk.LEFT)
+
 
 root.mainloop()
