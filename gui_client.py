@@ -55,10 +55,27 @@ def display_message(msg):
             content = content.replace(f"{username_global}:", "Você:", 1)
 
         # Substituições para mensagens privadas
-        elif content.startswith(f"[PRIVADO] {username_global}{edit_suffix}:"):
-            content = content.replace(f"[PRIVADO] {username_global}{edit_suffix}:", f"[PRIVADO] Você{edit_suffix}:", 1)
-        elif content.startswith(f"[PRIVADO] {username_global}:"):
-            content = content.replace(f"[PRIVADO] {username_global}:", "[PRIVADO] Você:", 1)
+        elif content.startswith("[PRIVADO]"):
+            # Extrair remetente e destinatário da mensagem privada
+            privado_pattern = r'^\[PRIVADO\] (\S+) para (\S+)( \(editado\))?: (.+)'
+            privado_match = re.match(privado_pattern, content)
+            if privado_match:
+                remetente = privado_match.group(1)
+                destinatario = privado_match.group(2)
+                editado = privado_match.group(3) or ''
+                mensagem_texto = privado_match.group(4)
+
+                if remetente == username_global:
+                    remetente_formatado = "Você"
+                else:
+                    remetente_formatado = remetente
+
+                if destinatario == username_global:
+                    destinatario_formatado = "Você"
+                else:
+                    destinatario_formatado = destinatario
+
+                content = f"[PRIVADO] {remetente_formatado} para {destinatario_formatado}{editado}: {mensagem_texto}"
 
         formatted = f"[{msg_id}] {content}"
 

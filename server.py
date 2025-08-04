@@ -79,8 +79,14 @@ def handle_client(conn, addr):
 
             if msg.startswith('@'):
                 target, _, content = msg.partition(' ')
-                print(f"[PRIVADO] {username} -> {target[1:]}: {content}")
-                private_message(target[1:], f"[PRIVADO] {username}: {content}")
+                target_user = target[1:]
+                formatted_for_target = f"[PRIVADO] {username}: {content}"
+                private_message(target_user, formatted_for_target)
+
+                formatted_for_sender = f"[PRIVADO] Você para {target_user}: {content}"
+                private_message(username, formatted_for_sender)
+
+
             else:
                 with lock:
                     global message_id_counter
